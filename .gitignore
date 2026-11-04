@@ -1,0 +1,33 @@
+# Trap AI Studio — .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Ambientes virtuais
+venv/
+.venv/
+env/
+
+# Arquivos temporários de processamento
+uploads/
+static/outputs/
+
+# Modelos baixados (cache do Demucs / PyTorch Hub)
+*.pt
+*.th
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+

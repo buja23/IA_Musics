@@ -1,5 +1,5 @@
-import React from 'react';
-import { Activity, RotateCcw, Library } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Play, Pause, Square, Repeat, RotateCcw, Library, Grid3X3, Box, Piano } from 'lucide-react';
 
 interface HeaderProps {
   hasTrack: boolean;
@@ -7,71 +7,71 @@ interface HeaderProps {
   onOpenLibrary: () => void;
   bpm?: number;
   keySignature?: string;
+  isPlaying: boolean;
+  onTogglePlay: () => void;
+  onStop: () => void;
+  isLoop: boolean;
+  onToggleLoop: () => void;
+  currentTime: number;
+  duration: number;
+  onSeek: (time: number) => void;
+  getFrequencyData: () => Uint8Array;
+  activeTab: 'both' | 'visual' | 'pianoroll';
+  onActiveTabChange: (tab: 'both' | 'visual' | 'pianoroll') => void;
 }
 
+const formatTime = (seconds: number) => {
+  const safe = Math.max(0, Number.isFinite(seconds) ? seconds : 0);
+  const minutes = Math.floor(safe / 60);
+  const secs = Math.floor(safe % 60);
+  return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+
 export const Header: React.FC<HeaderProps> = ({
-  hasTrack,
-  onReset,
-  onOpenLibrary,
-  bpm,
-  keySignature,
+  hasTrack, onReset, onOpenLibrary, bpm, keySignature,
+  isPlaying, onTogglePlay, onStop, isLoop, onToggleLoop,
+  currentTime, duration, onSeek, getFrequencyData, activeTab, onActiveTabChange,
 }) => {
+  const [peak, setPeak] = useState(0);
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const data = getFrequencyData();
+      let max = 0;
+      for (let i = 0; i < data.length; i++) max = Math.max(max, data[i]);
+      setPeak(max / 255);
+    }, 50);
+    return () => window.clearInterval(timer);
+  }, [getFrequencyData]);
+
+  const toolButton = (active: boolean) => `h-7 px-2 border border-[#121417] flex items-center gap-1.5 text-[10px] font-mono ${active ? 'bg-[#3a414a] text-[#76e068]' : 'bg-[#323840] text-[#aeb5bd] hover:text-white'}`;
   return (
-    <header className="w-full bg-[#0f172a]/95 border-b border-slate-800/80 px-5 py-2 flex items-center justify-between sticky top-0 z-50">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-sm bg-[#16161a] border border-zinc-700 flex items-center justify-center">
-          <Activity className="w-5 h-5 text-neon-cyan animate-pulse" />
-        </div>
-        <div>
-          <h1 className="text-lg font-bold tracking-wider text-white flex items-center gap-2">
-            TRAP <span className="text-neon-cyan font-black">AI STUDIO</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30">
-              v2.0 MIR
-            </span>
-          </h1>
-          <p className="text-xs text-gray-400">
-            Stem Splitter & Reactive 3D Visualizer
-          </p>
-        </div>
+    <header className="h-[52px] shrink-0 bg-[#282d33] border-b border-[#121417] flex items-center px-2 gap-2 overflow-hidden">
+      <div className="shrink-0 flex items-center gap-1 border-r border-[#121417] pr-2 h-9">
+        <div className="h-8 px-2 border border-[#121417] bg-[#323840] flex items-center"><span className="text-[12px] font-black tracking-wide text-[#e8edf2]">TRAP<span className="text-[#ff7b00]"> AI</span></span></div>
+        {hasTrack && <button onClick={onReset} className="h-8 px-2 flex items-center gap-1.5 bg-[#323840] border border-[#121417] text-[10px] text-[#d0d5da] hover:text-[#ff7b00]" title="Novo Beat"><RotateCcw className="h-3.5 w-3.5" /><span className="hidden xl:inline">Novo Beat</span></button>}
+        <button onClick={onOpenLibrary} className="h-8 px-2 flex items-center gap-1.5 bg-[#323840] border border-[#121417] text-[10px] text-[#d0d5da] hover:text-[#76e068]" title="Biblioteca"><Library className="h-3.5 w-3.5" /><span className="hidden xl:inline">Biblioteca</span></button>
       </div>
 
-      <div className="flex items-center gap-4">
-        {hasTrack && (
-          <div className="hidden md:flex items-center gap-3 px-3 py-1 border-l border-slate-800/80 text-xs">
-            {bpm && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-gray-400">BPM:</span>
-                <span className="text-neon-cyan font-bold">{bpm}</span>
-              </div>
-            )}
-            {keySignature && (
-              <div className="flex items-center gap-1.5 border-l border-surface-border pl-3">
-                <span className="text-gray-400">TOM:</span>
-                <span className="text-neon-pink font-bold">{keySignature}</span>
-              </div>
-            )}
-          </div>
-        )}
+      <div className="shrink-0 flex items-center gap-1">
+        <button onClick={onTogglePlay} className="h-8 w-8 grid place-items-center bg-[#323840] border border-[#121417] text-[#76e068] hover:bg-[#3a414a]" title={isPlaying ? 'Pause' : 'Play'}>{isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current" />}</button>
+        <button onClick={onStop} className="h-8 w-8 grid place-items-center bg-[#323840] border border-[#121417] text-[#d5dae0] hover:text-[#ef4444]" title="Stop"><Square className="h-3.5 w-3.5 fill-current" /></button>
+        <button onClick={onToggleLoop} className={`h-8 w-8 grid place-items-center border border-[#121417] ${isLoop ? 'bg-[#4b4f32] text-[#f59e0b]' : 'bg-[#323840] text-[#aeb5bd]'}`} title="Loop"><Repeat className="h-4 w-4" /></button>
+      </div>
 
-        <button
-          onClick={onOpenLibrary}
-          className="flex items-center gap-1.5 text-xs bg-surface-highlight hover:bg-neon-cyan/20 text-gray-300 hover:text-neon-cyan px-3 py-1.5 rounded border border-surface-border hover:border-neon-cyan/50 transition-all cursor-pointer"
-          title="Abrir biblioteca de beats salvos"
-        >
-          <Library className="w-3.5 h-3.5 text-neon-cyan" />
-          <span>Biblioteca</span>
-        </button>
+      <input type="range" min="0" max={duration || 100} step="0.05" value={currentTime} onChange={(event) => onSeek(parseFloat(event.target.value))} disabled={!hasTrack} className="w-28 xl:w-44 min-w-16 accent-[#ff7b00] h-2 cursor-pointer" aria-label="Timeline seek" />
 
-        {hasTrack && (
-          <button
-            onClick={onReset}
-            className="flex items-center gap-1.5 text-xs bg-surface-highlight hover:bg-neon-cyan/20 text-gray-300 hover:text-neon-cyan px-3 py-1.5 rounded border border-surface-border hover:border-neon-cyan/50 transition-all cursor-pointer"
-            title="Processar outro beat"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Novo Beat</span>
-          </button>
-        )}
+      <div className="h-9 min-w-[330px] flex-1 max-w-[520px] bg-[#131619] border border-[#121417] px-2 flex items-center gap-3 shadow-[inset_0_0_0_1px_#3a414a]">
+        <div className="text-[11px] font-mono text-[#76e068] whitespace-nowrap">{formatTime(currentTime)} <span className="text-[#ff7b00]">/ {formatTime(duration)}</span></div>
+        <div className="h-5 border-l border-[#323840]" />
+        <div className="text-[11px] font-mono text-[#76e068] whitespace-nowrap">{bpm ? bpm.toFixed(1) : '---'} <span className="text-[#7e8791]">BPM</span></div>
+        <div className="text-[11px] font-mono text-[#76e068] truncate">{keySignature || '---'}</div>
+        <div className="ml-auto w-20 h-[6px] bg-[#282d33] border border-[#121417] overflow-hidden"><div className="h-full bg-gradient-to-r from-[#76e068] via-[#f59e0b] to-[#ef4444] transition-[width] duration-75" style={{ width: `${peak * 100}%` }} /></div>
+      </div>
+
+      <div className="shrink-0 ml-auto flex items-center gap-1">
+        <button onClick={() => onActiveTabChange('both')} className={toolButton(activeTab === 'both')}><Grid3X3 className="h-3.5 w-3.5" /><span className="hidden 2xl:inline">Completa</span></button>
+        <button onClick={() => onActiveTabChange('visual')} className={toolButton(activeTab === 'visual')}><Box className="h-3.5 w-3.5" /><span className="hidden 2xl:inline">ZGameEditor</span></button>
+        <button onClick={() => onActiveTabChange('pianoroll')} className={toolButton(activeTab === 'pianoroll')}><Piano className="h-3.5 w-3.5" /><span className="hidden 2xl:inline">Piano Roll</span></button>
       </div>
     </header>
   );

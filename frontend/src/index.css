@@ -4,10 +4,13 @@
 
 @layer base {
   body {
-    background-color: #09090b;
+    background-color: #181b1f;
     color: #e4e4e7;
   }
 }
+
+/* FL Studio DAW surfaces */
+button, input, select { border-radius: 0; }
 
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
@@ -16,7 +19,7 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #09090b;
+  background: #181b1f;
 }
 
 ::-webkit-scrollbar-thumb {

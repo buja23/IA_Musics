@@ -164,16 +164,20 @@ export const UploadArea: React.FC<UploadAreaProps> = ({ onProcessComplete }) => 
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto my-12 px-4">
+    <div className="w-full max-w-2xl mx-auto my-12 px-4 border border-[#121417] bg-[#1e2226]">
+      <div className="h-7 bg-[#282d33] border-b border-[#121417] px-2 flex items-center justify-between text-[11px] text-[#d5dae0] font-mono">
+        <span>Audio Importer — Stem &amp; MIR Engine</span>
+        <span className="text-[9px] text-[#76e068]">FL AUDIO IN</span>
+      </div>
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => !isProcessing && fileInputRef.current?.click()}
-        className={`relative border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center transition-all duration-300 ${
+        className={`relative m-3 border border-dashed p-10 flex flex-col items-center justify-center text-center transition-all duration-300 ${
           isDragging
-            ? 'border-neon-cyan bg-neon-cyan/5 shadow-cyan-glow scale-[1.01]'
-            : 'border-surface-border bg-surface/50 hover:border-neon-cyan/40 hover:bg-surface-highlight/30 cursor-pointer'
+            ? 'border-[#ff7b00] bg-[#ff7b00]/10'
+            : 'border-[#3a414a] bg-[#181b1f] hover:border-[#ff7b00]/70 cursor-pointer'
         }`}
       >
         <input
@@ -188,20 +192,20 @@ export const UploadArea: React.FC<UploadAreaProps> = ({ onProcessComplete }) => 
         {isProcessing ? (
           <div className="flex flex-col items-center gap-6 py-6 w-full">
             <div className="relative">
-              <div className="w-20 h-20 rounded-full border-4 border-surface-border border-t-neon-cyan animate-spin" />
+              <div className="w-20 h-20 rounded-full border-4 border-[#323840] border-t-[#ff7b00] animate-spin" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <Music className="w-8 h-8 text-neon-cyan animate-pulse" />
+                <Music className="w-8 h-8 text-[#76e068] animate-pulse" />
               </div>
             </div>
 
             <div className="space-y-2 max-w-md w-full">
               <h3 className="text-white text-base font-bold flex items-center justify-center gap-2">
-                <Sparkles className="w-4 h-4 text-neon-cyan animate-bounce" />
+                <Sparkles className="w-4 h-4 text-[#ff7b00] animate-bounce" />
                 Processando "{selectedFileName}"
               </h3>
               
               <div className="flex items-center justify-between text-xs px-1">
-                <span className="text-neon-cyan font-bold tracking-wide">
+                <span className="text-[#76e068] font-bold tracking-wide">
                   {progressMessage}
                 </span>
                 <span className="text-gray-400 font-mono font-bold">
@@ -210,9 +214,9 @@ export const UploadArea: React.FC<UploadAreaProps> = ({ onProcessComplete }) => 
               </div>
               
               {/* Barra de progresso real via WebSocket */}
-              <div className="w-full h-2 bg-surface-highlight rounded-full overflow-hidden mt-3 border border-surface-border">
+              <div className="w-full h-2 bg-[#131619] overflow-hidden mt-3 border border-[#323840]">
                 <div 
-                  className="h-full bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-pink transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-[#76e068] to-[#ff7b00] transition-all duration-500"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -225,8 +229,8 @@ export const UploadArea: React.FC<UploadAreaProps> = ({ onProcessComplete }) => 
           </div>
         ) : (
           <div className="flex flex-col items-center gap-4 py-4">
-            <div className="w-16 h-16 rounded-2xl bg-surface-highlight border border-surface-border flex items-center justify-center shadow-lg group-hover:border-neon-cyan/50 transition-colors">
-              <Upload className="w-8 h-8 text-neon-cyan" />
+            <div className="w-16 h-16 bg-[#323840] border border-[#121417] flex items-center justify-center transition-colors">
+              <Upload className="w-8 h-8 text-[#ff7b00]" />
             </div>
 
             <div className="space-y-1">
@@ -234,14 +238,14 @@ export const UploadArea: React.FC<UploadAreaProps> = ({ onProcessComplete }) => 
                 Solte seu beat de Trap aqui
               </h2>
               <p className="text-gray-400 text-xs">
-                Formatos suportados: <span className="text-neon-cyan">.MP3</span> ou{' '}
-                <span className="text-neon-cyan">.WAV</span> (máx. 100 MB)
+                Formatos suportados: <span className="text-[#76e068]">.MP3</span> ou{' '}
+                <span className="text-[#76e068]">.WAV</span> (máx. 100 MB)
               </p>
             </div>
 
             <button
               type="button"
-              className="mt-2 px-5 py-2 rounded-lg bg-neon-cyan/10 hover:bg-neon-cyan/20 border border-neon-cyan/30 text-neon-cyan text-xs font-bold transition-all shadow-cyan-glow"
+              className="mt-2 px-5 py-2 bg-[#ff7b00] hover:bg-[#ff922e] border border-[#121417] text-[#121417] text-xs font-bold transition-all"
             >
               Navegar no Computador
             </button>
@@ -249,7 +253,7 @@ export const UploadArea: React.FC<UploadAreaProps> = ({ onProcessComplete }) => 
         )}
 
         {errorMessage && (
-          <div className="mt-4 p-3 rounded-lg bg-red-950/40 border border-red-500/40 text-red-300 text-xs flex items-center gap-2 max-w-md text-left">
+          <div className="mt-4 p-3 bg-[#281719] border border-[#ef4444]/40 text-red-300 text-xs flex items-center gap-2 max-w-md text-left">
             <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
             <span>{errorMessage}</span>
           </div>
@@ -257,29 +261,29 @@ export const UploadArea: React.FC<UploadAreaProps> = ({ onProcessComplete }) => 
       </div>
 
       {/* Dicas / Features */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-        <div className="bg-surface/60 border border-surface-border rounded-xl p-4 flex items-start gap-3">
-          <Disc className="w-5 h-5 text-neon-cyan flex-shrink-0 mt-0.5" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-3">
+        <div className="bg-[#22262b] border border-[#323840] p-3 flex items-start gap-3">
+          <Disc className="w-5 h-5 text-[#76e068] flex-shrink-0 mt-0.5" />
           <div>
-            <h4 className="text-white text-xs font-bold">Demucs 4 Stems</h4>
+            <h4 className="text-white text-xs font-bold">HTDemucs 4-Stems</h4>
             <p className="text-gray-400 text-[11px] mt-1">
               Separação estúdio de Vocais, 808, Bateria e Melodia com HTDemucs.
             </p>
           </div>
         </div>
 
-        <div className="bg-surface/60 border border-surface-border rounded-xl p-4 flex items-start gap-3">
-          <Activity className="w-5 h-5 text-neon-purple flex-shrink-0 mt-0.5" />
+        <div className="bg-[#22262b] border border-[#323840] p-3 flex items-start gap-3">
+          <Activity className="w-5 h-5 text-[#ff7b00] flex-shrink-0 mt-0.5" />
           <div>
-            <h4 className="text-white text-xs font-bold">Reator Visual 3D</h4>
+            <h4 className="text-white text-xs font-bold">ZGameEditor 3D</h4>
             <p className="text-gray-400 text-[11px] mt-1">
               Three.js em 30 FPS sincronizado com os kicks, 808, hi-hats e melodia.
             </p>
           </div>
         </div>
 
-        <div className="bg-surface/60 border border-surface-border rounded-xl p-4 flex items-start gap-3">
-          <Music className="w-5 h-5 text-neon-green flex-shrink-0 mt-0.5" />
+        <div className="bg-[#22262b] border border-[#323840] p-3 flex items-start gap-3">
+          <Music className="w-5 h-5 text-[#38bdf8] flex-shrink-0 mt-0.5" />
           <div>
             <h4 className="text-white text-xs font-bold">Piano Roll + MIDI</h4>
             <p className="text-gray-400 text-[11px] mt-1">

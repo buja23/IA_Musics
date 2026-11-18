@@ -97,196 +97,58 @@ export const StemMixer: React.FC<StemMixerProps> = ({
     return `${BACKEND_URL}${path.startsWith('/') ? '' : '/'}${path}`;
   };
 
+  const masterMuted = false;
+  const channelConfigs = [
+    { key: null as StemType | null, title: 'Master', index: '', color: '#d4d8de' },
+    { key: 'drums' as StemType, title: 'Drums', index: '1', color: '#76e068' },
+    { key: 'bass' as StemType, title: '808', index: '2', color: '#ff7b00' },
+    { key: 'other' as StemType, title: 'Melody', index: '3', color: '#7ce073' },
+    { key: 'vocals' as StemType, title: 'Vocals', index: '4', color: '#fb7185' },
+  ];
+
   return (
-    <aside className="w-full lg:w-80 bg-[#0f172a]/90 border border-slate-800/80 p-4 flex flex-col gap-4">
-      <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-        <div className="flex items-center gap-2">
-          <Sliders className="w-4 h-4 text-neon-cyan" />
-          <h2 className="text-white text-sm font-bold tracking-wider">
-            STEM MIXER
-          </h2>
-        </div>
-        <div className="text-[10px] text-gray-400 bg-surface-highlight px-2 py-0.5 rounded border border-surface-border">
-          4 CANAIS
-        </div>
+    <aside className="w-[310px] shrink-0 bg-[#282d33] border-l border-[#121417] flex flex-col">
+      <div className="h-[26px] bg-[#2c323a] border-b border-[#121417] px-2 flex items-center justify-between">
+        <span className="text-[11px] font-mono text-[#d5dae0]">Mixer — Trap AI</span>
+        <span className="text-[9px] font-mono text-[#76e068]">48 kHz</span>
       </div>
-
-      {/* Master Volume */}
-      <div className="bg-surface-highlight/40 border border-surface-border rounded-xl p-3 flex flex-col gap-2">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-gray-300 font-bold flex items-center gap-1.5">
-            <Volume2 className="w-3.5 h-3.5 text-neon-cyan" />
-            Master
-          </span>
-          <span className="text-neon-cyan font-mono text-[11px]">
-            {Math.round(masterVolume * 100)}%
-          </span>
-        </div>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={masterVolume}
-          onChange={(e) => onMasterVolumeChange(parseFloat(e.target.value))}
-          className="w-full accent-neon-cyan h-1.5 bg-surface-border rounded-lg cursor-pointer"
-        />
-      </div>
-
-      {/* Lista de Canais de Stems */}
-      <div className="flex flex-col gap-2.5">
-        {CHANNELS_CONFIG.map((conf) => {
-          const ch = channels[conf.key];
-          const wavUrl = stemsUrls[conf.key];
-
+      <div className="flex-1 grid grid-cols-5 gap-px bg-[#121417] p-px">
+        {channelConfigs.map((conf) => {
+          const ch = conf.key ? channels[conf.key] : null;
+          const level = conf.key ? vuLevels[conf.key] : masterVolume;
+          const litSegments = Math.round(level * 14);
           return (
-            <div
-              key={conf.key}
-              className={`bg-surface-highlight/30 border rounded-xl p-3 flex flex-col gap-2 transition-all ${
-                ch.solo
-                  ? 'border-neon-cyan bg-neon-cyan/5 shadow-cyan-glow'
-                  : ch.muted
-                  ? 'border-surface-border opacity-60'
-                  : 'border-surface-border hover:border-surface-border/80'
-              }`}
-            >
-              {/* Header do Canal */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${conf.accentBg}`} />
-                  <div>
-                    <h3 className={`text-xs font-bold ${conf.color}`}>
-                      [{CHANNELS_CONFIG.indexOf(conf) + 1}] {conf.title}
-                    </h3>
-                    <p className="text-[10px] text-gray-400 font-sans">
-                      {conf.subtitle}
-                    </p>
-                  </div>
-                </div>
+            <div key={conf.title} className="min-w-0 bg-[#1e2226] flex flex-col items-center py-1.5">
+              <div className="h-1 w-full mb-1" style={{ backgroundColor: conf.color }} />
+              <div className="h-7 text-[9px] font-mono text-[#d5dae0] text-center leading-3">{conf.index && `[${conf.index}]`}<br />{conf.title}</div>
 
-                {/* Mute & Solo Buttons */}
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => onToggleMute(conf.key)}
-                    className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold transition-all cursor-pointer ${
-                      ch.muted
-                        ? 'bg-red-500/80 text-white shadow-sm'
-                        : 'bg-surface-highlight text-gray-400 hover:text-white border border-surface-border'
-                    }`}
-                    title={ch.muted ? 'Desmutar' : 'Mutar (M)'}
-                  >
-                    M
-                  </button>
+              {ch ? (
+                <button onClick={() => onToggleMute(conf.key as StemType)} title={ch.muted ? 'Ativar canal' : 'Mutar canal'} className={`mt-1 h-3 w-3 rounded-full border border-[#121417] ${ch.muted ? 'bg-[#323840]' : 'bg-[#4ade80] shadow-[0_0_5px_#4ade80]'}`} />
+              ) : <span className="mt-1 h-3 w-3 rounded-full border border-[#121417] bg-[#4ade80] shadow-[0_0_5px_#4ade80]" />}
 
-                  <button
-                    onClick={() => onToggleSolo(conf.key)}
-                    className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold transition-all cursor-pointer ${
-                      ch.solo
-                        ? 'bg-neon-cyan text-black shadow-cyan-glow font-black'
-                        : 'bg-surface-highlight text-gray-400 hover:text-white border border-surface-border'
-                    }`}
-                    title={ch.solo ? 'Desativar Solo' : 'Solo (S)'}
-                  >
-                    S
-                  </button>
+              {ch && <button onClick={() => onToggleSolo(conf.key as StemType)} className={`mt-1 h-5 w-5 border border-[#121417] text-[9px] font-mono ${ch.solo ? 'bg-[#ff7b00] text-[#181b1f]' : 'bg-[#323840] text-[#d5dae0]'}`}>S</button>}
+
+              <div className="mt-2 flex-1 min-h-[150px] w-full flex items-center justify-center gap-1">
+                <div className="h-full w-3 bg-[#131619] border border-[#121417] flex flex-col-reverse gap-px p-px">
+                  {Array.from({ length: 14 }).map((_, index) => {
+                    const active = index < litSegments;
+                    const color = index >= 12 ? '#ef4444' : index >= 9 ? '#f59e0b' : '#76e068';
+                    return <span key={index} className="h-2 w-full" style={{ backgroundColor: active ? color : '#323840' }} />;
+                  })}
                 </div>
+                <div className="h-full flex flex-col justify-between text-[7px] font-mono text-[#7e8791] py-1"><span>0</span><span>-6</span><span>-12</span><span>-24</span></div>
               </div>
 
-              {/* Slider de Volume individual */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={ch.muted ? 0 : ch.volume}
-                  disabled={ch.muted}
-                  onChange={(e) => onVolumeChange(conf.key, parseFloat(e.target.value))}
-                  className="w-full accent-neon-cyan h-1 bg-surface-border rounded-lg cursor-pointer disabled:opacity-30"
-                />
-                <span className="text-[10px] text-gray-400 font-mono w-10 text-right">
-                  {ch.muted ? '0%' : `${Math.round(ch.volume * 100)}%`}
-                </span>
-              </div>
-
-              <div className="h-[3px] w-full overflow-hidden bg-slate-800/80" aria-label={`Nivel ${conf.title}`}>
-                <div
-                  className="h-full bg-[#00f0ff] transition-[width] duration-75"
-                  style={{ width: `${Math.min(100, vuLevels[conf.key] * 100)}%`, backgroundColor: conf.key === 'vocals' ? '#f43f5e' : conf.key === 'drums' ? '#10b981' : conf.key === 'bass' ? '#00f0ff' : '#a855f7' }}
-                />
-              </div>
-
-              {/* Download rápido de WAV */}
-              {wavUrl && (
-                <div className="pt-1 flex items-center justify-end">
-                  <a
-                    href={getFullUrl(wavUrl)}
-                    download={`${conf.key}.wav`}
-                    className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-neon-cyan transition-colors"
-                    title={`Baixar ${conf.title} em WAV`}
-                  >
-                    <Download className="w-3 h-3" />
-                    <span>.wav</span>
-                  </a>
-                </div>
+              {conf.key ? (
+                <input aria-label={`Fader ${conf.title}`} type="range" min="0" max="1" step="0.01" value={ch?.muted ? 0 : ch?.volume ?? 0.85} onChange={(event) => onVolumeChange(conf.key as StemType, parseFloat(event.target.value))} className="hardware-fader w-5 h-14 mt-1" style={{ writingMode: 'vertical-lr', direction: 'rtl' }} />
+              ) : (
+                <input aria-label="Fader Master" type="range" min="0" max="1" step="0.01" value={masterVolume} onChange={(event) => onMasterVolumeChange(parseFloat(event.target.value))} className="hardware-fader w-5 h-14 mt-1" style={{ writingMode: 'vertical-lr', direction: 'rtl' }} />
               )}
+              <div className="mt-1 text-[8px] font-mono text-[#76e068]">{conf.key ? (ch?.muted ? '-INF' : `${Math.round((ch?.volume ?? 0) * 100)}%`) : `${Math.round(masterVolume * 100)}%`}</div>
             </div>
           );
         })}
       </div>
-
-      {/* Exportação de MIDIs Transcritos */}
-      {midiFiles && (
-        <div className="border-t border-surface-border pt-3 flex flex-col gap-2">
-          <h4 className="text-[11px] font-bold text-gray-300 flex items-center gap-1.5">
-            <FileCode className="w-3.5 h-3.5 text-neon-green" />
-            Arquivos MIDI Gerados
-          </h4>
-          <div className="grid grid-cols-1 gap-1.5">
-            {midiFiles.melody && (
-              <a
-                href={getFullUrl(midiFiles.melody)}
-                download="melody.mid"
-                className="flex items-center justify-between text-xs bg-surface-highlight/40 hover:bg-neon-purple/10 border border-surface-border hover:border-neon-purple/50 px-2.5 py-1.5 rounded transition-all text-gray-300 hover:text-neon-purple"
-              >
-                <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-neon-purple" />
-                  Melodia (.mid)
-                </span>
-                <Download className="w-3.5 h-3.5" />
-              </a>
-            )}
-
-            {midiFiles.bass_808 && (
-              <a
-                href={getFullUrl(midiFiles.bass_808)}
-                download="bass_808.mid"
-                className="flex items-center justify-between text-xs bg-surface-highlight/40 hover:bg-neon-cyan/10 border border-surface-border hover:border-neon-cyan/50 px-2.5 py-1.5 rounded transition-all text-gray-300 hover:text-neon-cyan"
-              >
-                <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan" />
-                  Baixo 808 (.mid)
-                </span>
-                <Download className="w-3.5 h-3.5" />
-              </a>
-            )}
-
-            {midiFiles.vocals && (
-              <a
-                href={getFullUrl(midiFiles.vocals)}
-                download="vocals.mid"
-                className="flex items-center justify-between text-xs bg-surface-highlight/40 hover:bg-neon-pink/10 border border-surface-border hover:border-neon-pink/50 px-2.5 py-1.5 rounded transition-all text-gray-300 hover:text-neon-pink"
-              >
-                <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-neon-pink" />
-                  Vocais (.mid)
-                </span>
-                <Download className="w-3.5 h-3.5" />
-              </a>
-            )}
-          </div>
-        </div>
-      )}
     </aside>
   );
 };

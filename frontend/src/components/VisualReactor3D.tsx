@@ -478,7 +478,19 @@ export const VisualReactor3D: React.FC<VisualReactor3DProps> = ({
   };
 
   return (
-    <div className="relative w-full h-[360px] md:h-[450px] bg-background/90 rounded-2xl border border-surface-border overflow-hidden shadow-2xl">
+    <section className="border border-[#121417] bg-[#1e2226]">
+      <div className="h-[26px] bg-[#2c323a] border-b border-[#121417] px-2 flex items-center justify-between">
+        <div className="text-[11px] font-mono text-[#d5dae0]">ZGameEditor Visualizer — 3D Reactor</div>
+        <div className="flex items-center gap-2">
+          <span className={`h-2 w-2 rounded-full ${isRecording ? 'bg-[#ef4444] animate-pulse' : 'bg-[#76e068]'}`} />
+          {isRecording ? (
+            <button onClick={stopRecording} className="h-5 px-2 bg-[#ef4444] text-white text-[9px] font-mono" title="Parar gravação"><Square className="h-3 w-3 inline mr-1 fill-white" />REC {formatRecTime(recordingSeconds)}</button>
+          ) : (
+            <button onClick={startRecording} className="h-5 px-2 bg-[#323840] border border-[#121417] text-[9px] font-mono text-[#d5dae0] hover:text-[#76e068]" title="Gravar vídeo"><Video className="h-3 w-3 inline mr-1" />Gravar Clipe</button>
+          )}
+        </div>
+      </div>
+      <div className="relative w-full h-[360px] md:h-[450px] bg-[#131619] overflow-hidden">
       {/* Three.js Canvas Container */}
       <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
@@ -516,8 +528,8 @@ export const VisualReactor3D: React.FC<VisualReactor3DProps> = ({
         )}
       </div>
 
-      {/* Botão de Exportação de Clipe em Vídeo no Canto Superior Direito */}
-      <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+      {/* Botão de Exportação legado removido da área 3D: controle permanece na barra superior da janela */}
+      <div className="hidden absolute top-4 right-4 z-10 flex items-center gap-2">
         {isRecording ? (
           <button
             onClick={stopRecording}
@@ -544,6 +556,7 @@ export const VisualReactor3D: React.FC<VisualReactor3DProps> = ({
           WEBGL / THREE.JS + MP4/WEBM CAPTURE
         </span>
       </div>
-    </div>
+      </div>
+    </section>
   );
 };

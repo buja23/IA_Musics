@@ -7,12 +7,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#06090f',
-        surface: '#0b111e',
-        'surface-highlight': '#131c31',
-        'surface-border': '#1e2b45',
+        background: '#181b1f',
+        surface: '#1e2226',
+        'surface-highlight': '#323840',
+        'surface-border': '#121417',
         neon: {
-          cyan: '#00f0ff',
+          cyan: '#38bdf8',
           purple: '#b026ff',
           pink: '#ff007f',
           green: '#00ff66',

@@ -109,18 +109,18 @@ export const BeatLibraryModal: React.FC<BeatLibraryModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
-      <div className="w-full max-w-3xl bg-surface border border-surface-border rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
+      <div className="w-full max-w-3xl bg-[#1e2226] border border-[#121417] flex flex-col max-h-[85vh] overflow-hidden">
         {/* Header do Modal */}
-        <div className="px-6 py-4 border-b border-surface-border flex items-center justify-between">
+        <div className="h-8 px-3 bg-[#282d33] border-b border-[#121417] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-surface-highlight border border-neon-cyan/40 flex items-center justify-center shadow-cyan-glow">
-              <Library className="w-4 h-4 text-neon-cyan" />
+            <div className="w-6 h-6 border border-[#121417] bg-[#323840] flex items-center justify-center">
+              <Library className="w-3.5 h-3.5 text-[#76e068]" />
             </div>
             <div>
               <h3 className="text-white font-bold text-sm tracking-wider flex items-center gap-2">
                 BIBLIOTECA DE BEATS SALVOS
-                <span className="text-[10px] px-2 py-0.5 rounded bg-surface-highlight text-neon-cyan border border-surface-border font-mono">
+                <span className="text-[10px] px-2 py-0.5 bg-[#131619] text-[#76e068] border border-[#323840] font-mono">
                   {beats.length} {beats.length === 1 ? 'beat' : 'beats'}
                 </span>
               </h3>
@@ -132,7 +132,7 @@ export const BeatLibraryModal: React.FC<BeatLibraryModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-surface-highlight text-gray-400 hover:text-white border border-surface-border transition-colors cursor-pointer"
+            className="h-6 w-6 grid place-items-center bg-[#323840] text-[#aeb5bd] hover:text-white border border-[#121417] transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -142,7 +142,7 @@ export const BeatLibraryModal: React.FC<BeatLibraryModalProps> = ({
         <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-3">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
-              <Loader2 className="w-7 h-7 text-neon-cyan animate-spin" />
+              <Loader2 className="w-7 h-7 text-[#76e068] animate-spin" />
               <span className="text-xs font-mono">Consultando static/outputs/...</span>
             </div>
           ) : beats.length === 0 ? (
@@ -157,23 +157,23 @@ export const BeatLibraryModal: React.FC<BeatLibraryModalProps> = ({
             beats.map((beat) => (
               <div
                 key={beat.job_id}
-                className="group bg-surface-highlight/30 hover:bg-surface-highlight/60 border border-surface-border hover:border-neon-cyan/50 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all"
+                className="group bg-[#24292f] hover:bg-[#2b3036] border border-[#323840] hover:border-[#ff7b00] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all"
               >
                 <div className="flex items-start sm:items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-xl bg-surface border border-surface-border group-hover:border-neon-cyan/50 flex items-center justify-center group-hover:shadow-cyan-glow transition-all flex-shrink-0">
-                    <Music className="w-5 h-5 text-neon-cyan" />
+                  <div className="w-11 h-11 bg-[#131619] border border-[#323840] group-hover:border-[#ff7b00] flex items-center justify-center transition-all flex-shrink-0">
+                    <Music className="w-5 h-5 text-[#76e068]" />
                   </div>
 
                   <div className="space-y-1">
-                    <h4 className="text-white text-xs font-bold group-hover:text-neon-cyan transition-colors line-clamp-1">
+                    <h4 className="text-white text-xs font-bold group-hover:text-[#ff7b00] transition-colors line-clamp-1">
                       {beat.original_filename}
                     </h4>
                     <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-gray-400 font-mono">
-                      <span className="px-1.5 py-0.5 rounded bg-surface border border-surface-border">
-                        BPM: <strong className="text-neon-cyan">{beat.metadata.bpm}</strong>
+                      <span className="px-1.5 py-0.5 bg-[#131619] border border-[#323840]">
+                        BPM: <strong className="text-[#76e068]">{beat.metadata.bpm}</strong>
                       </span>
-                      <span className="px-1.5 py-0.5 rounded bg-surface border border-surface-border">
-                        TOM: <strong className="text-neon-pink">{beat.metadata.key}</strong>
+                      <span className="px-1.5 py-0.5 bg-[#131619] border border-[#323840]">
+                        TOM: <strong className="text-[#76e068]">{beat.metadata.key}</strong>
                       </span>
                       <span className="flex items-center gap-1 text-gray-400">
                         <Clock className="w-3 h-3 text-gray-500" />
@@ -191,16 +191,16 @@ export const BeatLibraryModal: React.FC<BeatLibraryModalProps> = ({
                 <div className="flex items-center gap-2 self-end sm:self-center">
                   <button
                     onClick={() => handleSelect(beat)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neon-cyan/10 hover:bg-neon-cyan/20 border border-neon-cyan/40 text-neon-cyan hover:text-white text-xs font-bold shadow-cyan-glow transition-all cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#ff7b00] hover:bg-[#ff922e] border border-[#121417] text-[#121417] text-xs font-bold transition-all cursor-pointer"
                   >
-                    <Play className="w-3.5 h-3.5 fill-neon-cyan" />
+                    <Play className="w-3.5 h-3.5 fill-[#121417]" />
                     <span>Abrir no Estúdio</span>
                   </button>
 
                   <button
                     onClick={(e) => handleDelete(beat.job_id, e)}
                     disabled={deletingId === beat.job_id}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-surface hover:bg-red-950/40 border border-surface-border hover:border-red-500/50 text-gray-400 hover:text-red-400 text-xs transition-colors cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-1 px-2.5 py-1.5 bg-[#323840] hover:bg-[#281719] border border-[#121417] hover:border-[#ef4444]/50 text-[#aeb5bd] hover:text-[#ef4444] text-xs transition-colors cursor-pointer disabled:opacity-50"
                     title="Excluir beat permanentemente"
                   >
                     {deletingId === beat.job_id ? (

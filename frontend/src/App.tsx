@@ -4,11 +4,10 @@ import { UploadArea } from './components/UploadArea';
 import { StemMixer } from './components/StemMixer';
 import { VisualReactor3D } from './components/VisualReactor3D';
 import { PianoRollCanvas } from './components/PianoRollCanvas';
-import { PlayerControls } from './components/PlayerControls';
+import { BeatLibraryPanel } from './components/BeatLibraryPanel';
 import { BeatLibraryModal } from './components/BeatLibraryModal';
 import { useStemAudio } from './hooks/useStemAudio';
 import { ProcessBeatResponse, AnalysisData, StemType } from './types';
-import { Eye, Music2 } from 'lucide-react';
 
 const BACKEND_URL = 'http://localhost:8000';
 
@@ -17,6 +16,7 @@ export function App() {
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [activeTab, setActiveTab] = useState<'both' | 'visual' | 'pianoroll'>('both');
   const [isLibraryOpen, setIsLibraryOpen] = useState<boolean>(false);
+  const [browserCollapsed, setBrowserCollapsed] = useState<boolean>(false);
 
   // Mapeamento dos stems para o player de áudio
   const stemsMap = useMemo(() => {
@@ -94,11 +94,22 @@ export function App() {
   const envelopes = analysis?.envelopes_30fps || analysis?.energy_envelopes;
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-zinc-200 flex flex-col studio-grid relative">
+    <div className="h-screen overflow-hidden bg-[#181b1f] text-[#d7dce2] flex flex-col">
       <Header
         hasTrack={!!processResult}
         onReset={handleReset}
         onOpenLibrary={() => setIsLibraryOpen(true)}
+        isPlaying={isPlaying}
+        onTogglePlay={togglePlay}
+        onStop={() => seek(0)}
+        isLoop={isLoop}
+        onToggleLoop={() => setIsLoop(!isLoop)}
+        currentTime={currentTime}
+        duration={effectiveDuration}
+        onSeek={seek}
+        getFrequencyData={getFrequencyData}
+        activeTab={activeTab}
+        onActiveTabChange={setActiveTab}
         bpm={processResult?.metadata?.bpm}
         keySignature={processResult?.metadata?.key}
       />
@@ -111,61 +122,25 @@ export function App() {
         }}
       />
 
-      <main
-        className={`flex-1 w-full max-w-[1600px] mx-auto p-4 md:p-6 flex flex-col ${
-          processResult ? 'pb-36' : ''
-        }`}
-      >
+      <div className="flex-1 min-h-0 flex">
+        {processResult && (
+          <BeatLibraryPanel
+            collapsed={browserCollapsed}
+            onToggle={() => setBrowserCollapsed((value) => !value)}
+            onSelectBeat={(beat) => setProcessResult(beat)}
+            onOpenModal={() => setIsLibraryOpen(true)}
+            stemsUrls={stemsMap || undefined}
+            midiFiles={processResult.midi_files}
+          />
+        )}
+
+        <main className="flex-1 min-w-0 min-h-0 overflow-auto bg-[#1e2226]">
         {!processResult ? (
           <UploadArea onProcessComplete={(data) => setProcessResult(data)} />
         ) : (
-          <div className="flex flex-col lg:flex-row gap-6 items-start">
+          <div className="flex flex-row items-stretch min-h-full">
             {/* Coluna Principal: Visualizador 3D + Piano Roll */}
-            <div className="flex-1 w-full flex flex-col gap-6">
-              {/* Controles de Modo de Visualização */}
-              <div className="flex items-center justify-between bg-[#111114] border border-zinc-800 p-2 rounded-sm">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setActiveTab('both')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      activeTab === 'both'
-                        ? 'bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/50 shadow-cyan-glow'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    Visualização Dupla
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('visual')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                      activeTab === 'visual'
-                        ? 'bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/50 shadow-cyan-glow'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    Reator 3D
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('pianoroll')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                      activeTab === 'pianoroll'
-                        ? 'bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/50 shadow-cyan-glow'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <Music2 className="w-3.5 h-3.5" />
-                    Piano Roll
-                  </button>
-                </div>
-
-                <div className="text-[11px] font-mono text-gray-400">
-                  JOB: <span className="text-neon-cyan">{processResult.job_id}</span>
-                </div>
-              </div>
-
+            <div className="flex-1 min-w-0 flex flex-col gap-2 p-2">
               {/* Reator 3D com Gravador de Vídeo Integrado */}
               {(activeTab === 'both' || activeTab === 'visual') && (
                 <VisualReactor3D
@@ -213,22 +188,8 @@ export function App() {
             />
           </div>
         )}
-      </main>
-
-      {/* Dock Fixa de Transporte no Rodapé */}
-      {processResult && (
-        <div className="sticky bottom-0 z-40 w-full">
-          <PlayerControls
-            isPlaying={isPlaying}
-            onTogglePlay={togglePlay}
-            currentTime={currentTime}
-            duration={effectiveDuration}
-            onSeek={seek}
-            isLoop={isLoop}
-            onToggleLoop={() => setIsLoop(!isLoop)}
-          />
-        </div>
-      )}
+        </main>
+      </div>
     </div>
   );
 }

@@ -82,7 +82,7 @@ export const PianoRollCanvas: React.FC<PianoRollCanvasProps> = ({
     const windowStart = Math.max(0, currentTime - zoomWindowSeconds * 0.25);
     const windowEnd = windowStart + zoomWindowSeconds;
 
-    const pianoWidth = 44;
+    const pianoWidth = 48;
     const plotWidth = width - pianoWidth;
     const timeToX = (t: number) => {
       return pianoWidth + ((t - windowStart) / zoomWindowSeconds) * plotWidth;
@@ -97,7 +97,7 @@ export const PianoRollCanvas: React.FC<PianoRollCanvasProps> = ({
     const noteHeight = Math.max(4, (height - 90) / totalMidiRows);
 
     // 1. Limpar Fundo
-    ctx.fillStyle = '#06090f';
+    ctx.fillStyle = '#131619';
     ctx.fillRect(0, 0, width, height);
 
     // 2. Grade rítmica alinhada a BPM e compassos de 4 tempos
@@ -139,14 +139,17 @@ export const PianoRollCanvas: React.FC<PianoRollCanvasProps> = ({
     for (let m = minMidi; m <= maxMidi; m++) {
       const y = midiToY(m);
       const isBlack = [1, 3, 6, 8, 10].includes(m % 12);
-      ctx.fillStyle = isBlack ? 'rgba(15, 23, 42, 0.55)' : 'rgba(30, 41, 59, 0.18)';
+      ctx.fillStyle = isBlack ? '#181b1f' : '#1e2226';
       ctx.fillRect(pianoWidth, y, plotWidth, noteHeight);
 
-      const pitchName = pitchNames[m % 12];
       const isScaleNote = scalePitches.has(m % 12);
-      ctx.fillStyle = '#0b1220';
+      const activePitch = currentActiveNotes.melody !== '—' || currentActiveNotes.bass !== '—' || currentActiveNotes.vocals !== '—';
+      ctx.fillStyle = isBlack ? '#1c2024' : '#d4d8de';
       ctx.fillRect(0, y, pianoWidth - 1, noteHeight);
-      ctx.fillStyle = isScaleNote ? '#00f0ff' : '#64748b';
+      ctx.fillStyle = isScaleNote ? '#ff7b00' : (isBlack ? '#9ca3af' : '#282d33');
+      if (activePitch && ((m === (melodyNotes.find((n) => currentTime >= n.start && currentTime <= n.end)?.midi ?? -1)) || (m === (bassNotes.find((n) => currentTime >= n.start && currentTime <= n.end)?.midi ?? -1)) || (m === (vocalNotes.find((n) => currentTime >= n.start && currentTime <= n.end)?.midi ?? -1)))) {
+        ctx.fillStyle = '#76e068';
+      }
       ctx.font = '9px "JetBrains Mono"';
       if (m % 12 === 0) ctx.fillText(`C${Math.floor(m / 12) - 1}`, 5, y + noteHeight - 1);
     }
@@ -163,9 +166,9 @@ export const PianoRollCanvas: React.FC<PianoRollCanvasProps> = ({
         const w = Math.max(3, x2 - x1);
 
         const confidence = Math.max(0.18, Math.min(1, n.velocity));
-        ctx.fillStyle = `rgba(168, 85, 247, ${0.45 + confidence * 0.55})`;
+        ctx.fillStyle = `rgba(124, 224, 115, ${0.55 + confidence * 0.45})`;
         ctx.fillRect(x1, y, w, noteHeight - 1);
-        ctx.strokeStyle = '#c084fc';
+        ctx.strokeStyle = '#4d9f47';
         ctx.strokeRect(x1, y, w, noteHeight - 1);
         noteRectsRef.current.push({ x: x1, y, w, h: noteHeight - 1, note: n, layer: 'Melodia' });
       });
@@ -200,15 +203,15 @@ export const PianoRollCanvas: React.FC<PianoRollCanvasProps> = ({
 
         // Bloco base da nota 808
         const confidence = Math.max(0.18, Math.min(1, n.velocity));
-        ctx.fillStyle = `rgba(0, 240, 255, ${0.45 + confidence * 0.55})`;
+        ctx.fillStyle = `rgba(56, 189, 248, ${0.55 + confidence * 0.45})`;
         ctx.fillRect(x1, y, w, noteHeight - 1);
-        ctx.strokeStyle = '#00f0ff';
+        ctx.strokeStyle = '#38bdf8';
         ctx.strokeRect(x1, y, w, noteHeight - 1);
         noteRectsRef.current.push({ x: x1, y, w, h: noteHeight - 1, note: n, layer: '808' });
 
         // Desenhar Curva de Pitch Bend (Glides)
         if (n.pitch_bend && n.pitch_bend.length > 1) {
-          ctx.strokeStyle = '#00f0ff';
+          ctx.strokeStyle = '#38bdf8';
           ctx.lineWidth = 2;
           ctx.beginPath();
 
@@ -233,7 +236,7 @@ export const PianoRollCanvas: React.FC<PianoRollCanvasProps> = ({
       const drumStartY = height - 95;
 
       // Divisor
-      ctx.strokeStyle = '#1e2b45';
+      ctx.strokeStyle = '#3a414a';
       ctx.beginPath();
       ctx.moveTo(0, drumStartY);
       ctx.lineTo(width, drumStartY);
@@ -247,6 +250,13 @@ export const PianoRollCanvas: React.FC<PianoRollCanvasProps> = ({
       ];
 
       drumTracks.forEach((track) => {
+        ctx.fillStyle = '#252a30';
+        ctx.fillRect(pianoWidth, track.y - 15, width - pianoWidth, 30);
+        const stepWidth = (width - pianoWidth) / 16;
+        for (let step = 0; step < 16; step++) {
+          ctx.fillStyle = step % 4 < 2 ? '#2d333b' : '#382c2c';
+          ctx.fillRect(pianoWidth + step * stepWidth, track.y - 15, stepWidth - 1, 30);
+        }
         ctx.strokeStyle = '#1e293b';
         ctx.beginPath();
         ctx.moveTo(pianoWidth, track.y - 15);
@@ -259,12 +269,11 @@ export const PianoRollCanvas: React.FC<PianoRollCanvasProps> = ({
         track.hits.forEach((hit) => {
           if (hit.time < windowStart || hit.time > windowEnd) return;
           const x = timeToX(hit.time);
-          const radius = Math.max(2, hit.intensity * 5);
+          const stepIndex = Math.min(15, Math.max(0, Math.floor(((x - pianoWidth) / (width - pianoWidth)) * 16)));
+          const stepX = pianoWidth + stepIndex * stepWidth;
 
           ctx.fillStyle = track.color;
-          ctx.beginPath();
-          ctx.arc(x, track.y, radius, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.fillRect(stepX + 2, track.y - 12, Math.max(3, stepWidth - 4), 24);
         });
       });
     }
@@ -272,9 +281,9 @@ export const PianoRollCanvas: React.FC<PianoRollCanvasProps> = ({
     // 4. Playhead (Agulha de Tempo Vermelha/Ciano)
     const playheadX = timeToX(currentTime);
     if (playheadX >= 0 && playheadX <= width) {
-      ctx.strokeStyle = '#00f0ff';
+      ctx.strokeStyle = '#ff7b00';
       ctx.lineWidth = 2;
-      ctx.shadowColor = '#00f0ff';
+      ctx.shadowColor = '#ff7b00';
       ctx.shadowBlur = 8;
       ctx.beginPath();
       ctx.moveTo(playheadX, 0);
@@ -283,7 +292,7 @@ export const PianoRollCanvas: React.FC<PianoRollCanvasProps> = ({
       ctx.shadowBlur = 0;
 
       // Triângulo indicador no topo do playhead
-      ctx.fillStyle = '#00f0ff';
+      ctx.fillStyle = '#ff7b00';
       ctx.beginPath();
       ctx.moveTo(playheadX - 6, 0);
       ctx.lineTo(playheadX + 6, 0);
@@ -303,7 +312,12 @@ export const PianoRollCanvas: React.FC<PianoRollCanvasProps> = ({
   ]);
 
   return (
-    <div className="w-full bg-[#0f172a]/90 border border-slate-800/80 p-4 flex flex-col gap-3">
+    <section className="w-full border border-[#121417] bg-[#1e2226] flex flex-col">
+      <div className="h-[26px] bg-[#2c323a] border-b border-[#121417] px-2 flex items-center justify-between">
+        <span className="text-[11px] font-mono text-[#d5dae0]">Piano roll — Harmonic & 808 Score</span>
+        <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#76e068]" /><button className="h-5 px-1.5 text-[#aeb5bd] text-[10px]">_</button><button className="h-5 px-1.5 text-[#aeb5bd] text-[10px]">×</button></div>
+      </div>
+      <div className="p-2 flex flex-col gap-2">
       {/* HUD de Notas Ativas e Métricas em Tempo Real */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
         <div className="flex items-center gap-4">
@@ -318,22 +332,16 @@ export const PianoRollCanvas: React.FC<PianoRollCanvasProps> = ({
           <div className="flex items-center gap-2 pl-4 border-l border-surface-border">
             <span className="text-[11px] text-gray-400">NOTA ATUAL:</span>
             <div className="flex items-center gap-1.5">
-              <span className="px-2 py-0.5 rounded bg-neon-purple/20 border border-neon-purple/40 text-neon-purple text-xs font-bold">
-                Melodia: {currentActiveNotes.melody}
-              </span>
-              <span className="px-2 py-0.5 rounded bg-neon-cyan/20 border border-neon-cyan/40 text-neon-cyan text-xs font-bold">
-                808: {currentActiveNotes.bass}
-              </span>
-              <span className="px-2 py-0.5 rounded bg-neon-pink/20 border border-neon-pink/40 text-neon-pink text-xs font-bold">
-                Voz: {currentActiveNotes.vocals}
-              </span>
+              <span className="min-w-20 px-2 py-1 bg-[#131619] border border-[#323840] text-[#7ce073] text-xs font-mono">Mel: {currentActiveNotes.melody}</span>
+              <span className="min-w-20 px-2 py-1 bg-[#131619] border border-[#323840] text-[#38bdf8] text-xs font-mono">808: {currentActiveNotes.bass}</span>
+              <span className="min-w-20 px-2 py-1 bg-[#131619] border border-[#323840] text-[#fb7185] text-xs font-mono">Voz: {currentActiveNotes.vocals}</span>
             </div>
           </div>
         </div>
 
         <button
           onClick={() => setXaiEnabled((value) => !value)}
-          className={`font-mono text-[10px] px-2 py-1 border rounded-sm ${xaiEnabled ? 'bg-[#10b981]/15 border-[#10b981] text-[#10b981]' : 'bg-[#16161a] border-zinc-700 text-zinc-500'}`}
+          className={`font-mono text-[10px] px-2 py-1 border ${xaiEnabled ? 'bg-[#131619] border-[#323840] text-[#76e068]' : 'bg-[#131619] border-[#323840] text-zinc-500'}`}
         >
           [XAI: {xaiEnabled ? 'ON' : 'OFF'}]
         </button>
@@ -410,7 +418,10 @@ export const PianoRollCanvas: React.FC<PianoRollCanvasProps> = ({
       </div>
 
       {/* Canvas do Piano Roll */}
-      <div className="w-full h-64 bg-[#06090f] border border-slate-800/80 overflow-hidden relative">
+      <div className="h-[22px] ml-[48px] bg-[#252a30] border border-b-0 border-[#121417] relative overflow-hidden">
+        {Array.from({ length: 16 }).map((_, index) => <span key={index} className="absolute top-0 bottom-0 border-l border-[#3a414a] text-[9px] font-mono text-[#9aa2aa] pl-1" style={{ left: `${index * 6.25}%` }}>{index + 1}</span>)}
+      </div>
+      <div className="w-full h-64 bg-[#131619] border border-[#121417] overflow-hidden relative">
         <canvas
           ref={canvasRef}
           className="w-full h-full block"
@@ -434,6 +445,7 @@ export const PianoRollCanvas: React.FC<PianoRollCanvasProps> = ({
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </section>
   );
 };

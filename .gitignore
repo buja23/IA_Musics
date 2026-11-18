@@ -18,7 +18,7 @@ frontend/node_modules/
 frontend/dist/
 
 # Arquivos temporários de processamento
-uploads/
+
 static/outputs/
 
 # Modelos baixados (cache do Demucs / PyTorch Hub)

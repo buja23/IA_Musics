@@ -28,7 +28,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
   onToggleLoop,
 }) => {
   return (
-    <div className="w-full bg-[#06090f]/95 backdrop-blur-md border-t border-cyan-500/20 px-4 md:px-8 py-3.5 flex flex-col gap-2 shadow-2xl">
+    <div className="w-full bg-[#111114]/95 border-t border-zinc-800 px-4 md:px-8 py-2.5 flex flex-col gap-2">
       {/* Barra de Progresso / Seek */}
       <div className="flex items-center gap-3 max-w-[1600px] w-full mx-auto">
         <span className="text-xs font-mono text-neon-cyan font-bold w-12 text-right">

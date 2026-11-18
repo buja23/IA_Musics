@@ -4,8 +4,8 @@
 
 @layer base {
   body {
-    background-color: #06090f;
-    color: #e2e8f0;
+    background-color: #09090b;
+    color: #e4e4e7;
   }
 }
 
@@ -16,22 +16,44 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #0b111e;
+  background: #09090b;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e2b45;
+  background: #27272a;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #00f0ff88;
+  background: #ff550088;
 }
 
-/* Subtle neon scanline / grid background */
-.cyber-grid {
+/* Industrial rack surface */
+.studio-grid {
   background-size: 32px 32px;
   background-image: 
-    linear-gradient(to right, rgba(30, 43, 69, 0.25) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(30, 43, 69, 0.25) 1px, transparent 1px);
+    linear-gradient(to right, rgba(39, 39, 42, 0.28) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(39, 39, 42, 0.28) 1px, transparent 1px);
+}
+
+.hardware-fader {
+  appearance: slider-vertical;
+  accent-color: #ff5500;
+  background: #27272a;
+}
+
+.hardware-fader::-webkit-slider-runnable-track {
+  width: 4px;
+  background: #27272a;
+  border: 1px solid #3f3f46;
+}
+
+.hardware-fader::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 7px;
+  margin-left: -7px;
+  background: #d4d4d8;
+  border: 1px solid #71717a;
+  border-radius: 1px;
 }

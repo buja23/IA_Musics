@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Cpu, RotateCcw, Library } from 'lucide-react';
+import { Activity, RotateCcw, Library } from 'lucide-react';
 
 interface HeaderProps {
   hasTrack: boolean;
@@ -17,9 +17,9 @@ export const Header: React.FC<HeaderProps> = ({
   keySignature,
 }) => {
   return (
-    <header className="w-full bg-surface/80 backdrop-blur-md border-b border-surface-border px-6 py-3 flex items-center justify-between sticky top-0 z-50">
+    <header className="w-full bg-[#0f172a]/95 border-b border-slate-800/80 px-5 py-2 flex items-center justify-between sticky top-0 z-50">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-surface-highlight border border-neon-cyan/40 flex items-center justify-center shadow-cyan-glow">
+        <div className="w-9 h-9 rounded-sm bg-[#16161a] border border-zinc-700 flex items-center justify-center">
           <Activity className="w-5 h-5 text-neon-cyan animate-pulse" />
         </div>
         <div>
@@ -37,7 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
 
       <div className="flex items-center gap-4">
         {hasTrack && (
-          <div className="hidden md:flex items-center gap-3 px-3 py-1 rounded bg-surface-highlight border border-surface-border text-xs">
+          <div className="hidden md:flex items-center gap-3 px-3 py-1 border-l border-slate-800/80 text-xs">
             {bpm && (
               <div className="flex items-center gap-1.5">
                 <span className="text-gray-400">BPM:</span>
@@ -52,12 +52,6 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
         )}
-
-        <div className="flex items-center gap-2 text-xs text-gray-400 bg-surface-highlight/50 px-2.5 py-1 rounded border border-surface-border">
-          <Cpu className="w-3.5 h-3.5 text-neon-green" />
-          <span>CPU Engine</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-neon-green animate-ping" />
-        </div>
 
         <button
           onClick={onOpenLibrary}

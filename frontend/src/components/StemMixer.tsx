@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Volume2, VolumeX, Download, FileCode, Sliders } from 'lucide-react';
-import { StemType, StemChannelState, MidiFiles } from '../types';
+import { StemType, StemChannelState, MidiFiles, EnergyEnvelopes } from '../types';
+import type { MutableRefObject } from 'react';
 
 interface StemMixerProps {
   channels: Record<StemType, StemChannelState>;
@@ -11,6 +12,10 @@ interface StemMixerProps {
   midiFiles?: MidiFiles;
   masterVolume: number;
   onMasterVolumeChange: (val: number) => void;
+  getFrequencyData?: () => Uint8Array;
+  envelopes?: EnergyEnvelopes;
+  effectiveGainsRef?: MutableRefObject<Record<StemType, number>>;
+  currentTime: number;
 }
 
 interface ChannelMeta {
@@ -68,15 +73,33 @@ export const StemMixer: React.FC<StemMixerProps> = ({
   midiFiles,
   masterVolume,
   onMasterVolumeChange,
+  getFrequencyData,
+  envelopes,
+  effectiveGainsRef,
+  currentTime,
 }) => {
+  const [vuLevels, setVuLevels] = useState<Record<StemType, number>>({ drums: 0, bass: 0, other: 0, vocals: 0 });
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const frame = Math.floor(currentTime * 30);
+      const gains = effectiveGainsRef?.current;
+      setVuLevels({
+        drums: (envelopes?.drums?.[frame] ?? 0) * (gains?.drums ?? 1),
+        bass: (envelopes?.bass?.[frame] ?? 0) * (gains?.bass ?? 1),
+        other: (envelopes?.other?.[frame] ?? 0) * (gains?.other ?? 1),
+        vocals: (envelopes?.vocals?.[frame] ?? 0) * (gains?.vocals ?? 1),
+      });
+    }, 60);
+    return () => window.clearInterval(timer);
+  }, [currentTime, envelopes, effectiveGainsRef]);
   const getFullUrl = (path: string) => {
     if (path.startsWith('http')) return path;
     return `${BACKEND_URL}${path.startsWith('/') ? '' : '/'}${path}`;
   };
 
   return (
-    <aside className="w-full lg:w-80 bg-surface/90 border border-surface-border rounded-2xl p-4 flex flex-col gap-4 shadow-xl">
-      <div className="flex items-center justify-between border-b border-surface-border pb-3">
+    <aside className="w-full lg:w-80 bg-[#0f172a]/90 border border-slate-800/80 p-4 flex flex-col gap-4">
+      <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
         <div className="flex items-center gap-2">
           <Sliders className="w-4 h-4 text-neon-cyan" />
           <h2 className="text-white text-sm font-bold tracking-wider">
@@ -133,7 +156,7 @@ export const StemMixer: React.FC<StemMixerProps> = ({
                   <div className={`w-2 h-2 rounded-full ${conf.accentBg}`} />
                   <div>
                     <h3 className={`text-xs font-bold ${conf.color}`}>
-                      {conf.title}
+                      [{CHANNELS_CONFIG.indexOf(conf) + 1}] {conf.title}
                     </h3>
                     <p className="text-[10px] text-gray-400 font-sans">
                       {conf.subtitle}
@@ -178,14 +201,19 @@ export const StemMixer: React.FC<StemMixerProps> = ({
                   step="0.01"
                   value={ch.muted ? 0 : ch.volume}
                   disabled={ch.muted}
-                  onChange={(e) =>
-                    onVolumeChange(conf.key, parseFloat(e.target.value))
-                  }
+                  onChange={(e) => onVolumeChange(conf.key, parseFloat(e.target.value))}
                   className="w-full accent-neon-cyan h-1 bg-surface-border rounded-lg cursor-pointer disabled:opacity-30"
                 />
-                <span className="text-[10px] text-gray-400 font-mono w-7 text-right">
+                <span className="text-[10px] text-gray-400 font-mono w-10 text-right">
                   {ch.muted ? '0%' : `${Math.round(ch.volume * 100)}%`}
                 </span>
+              </div>
+
+              <div className="h-[3px] w-full overflow-hidden bg-slate-800/80" aria-label={`Nivel ${conf.title}`}>
+                <div
+                  className="h-full bg-[#00f0ff] transition-[width] duration-75"
+                  style={{ width: `${Math.min(100, vuLevels[conf.key] * 100)}%`, backgroundColor: conf.key === 'vocals' ? '#f43f5e' : conf.key === 'drums' ? '#10b981' : conf.key === 'bass' ? '#00f0ff' : '#a855f7' }}
+                />
               </div>
 
               {/* Download rápido de WAV */}

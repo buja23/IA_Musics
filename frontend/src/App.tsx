@@ -57,6 +57,8 @@ export function App() {
     toggleSolo,
     setVolume,
     getAudioStream,
+    effectiveGainsRef,
+    getFrequencyData,
   } = useStemAudio({
     stems: stemsMap,
     duration: effectiveDuration,
@@ -92,7 +94,7 @@ export function App() {
   const envelopes = analysis?.envelopes_30fps || analysis?.energy_envelopes;
 
   return (
-    <div className="min-h-screen bg-background text-gray-200 flex flex-col cyber-grid relative">
+    <div className="min-h-screen bg-[#09090b] text-zinc-200 flex flex-col studio-grid relative">
       <Header
         hasTrack={!!processResult}
         onReset={handleReset}
@@ -121,7 +123,7 @@ export function App() {
             {/* Coluna Principal: Visualizador 3D + Piano Roll */}
             <div className="flex-1 w-full flex flex-col gap-6">
               {/* Controles de Modo de Visualização */}
-              <div className="flex items-center justify-between bg-surface/70 border border-surface-border p-2 rounded-xl">
+              <div className="flex items-center justify-between bg-[#111114] border border-zinc-800 p-2 rounded-sm">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setActiveTab('both')}
@@ -172,6 +174,9 @@ export function App() {
                   jobId={processResult.job_id}
                   envelopes={envelopes}
                   drums={drums}
+                  bassNotes={notes?.bass_808}
+                  effectiveGainsRef={effectiveGainsRef}
+                  getFrequencyData={getFrequencyData}
                   isPlaying={isPlaying}
                   getAudioStream={getAudioStream}
                 />
@@ -201,6 +206,10 @@ export function App() {
               midiFiles={processResult.midi_files}
               masterVolume={masterVolume}
               onMasterVolumeChange={setMasterVolume}
+              getFrequencyData={getFrequencyData}
+              envelopes={envelopes}
+              effectiveGainsRef={effectiveGainsRef}
+              currentTime={currentTime}
             />
           </div>
         )}

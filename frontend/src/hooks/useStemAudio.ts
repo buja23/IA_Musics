@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, MutableRefObject } from 'react';
 import { StemType, StemChannelState } from '../types';
 
 interface UseStemAudioProps {
@@ -12,7 +12,25 @@ const DEFAULT_CHANNEL_STATE: StemChannelState = {
   volume: 0.85,
 };
 
-export function useStemAudio({ stems, duration = 0 }: UseStemAudioProps) {
+export function useStemAudio({ stems, duration = 0 }: UseStemAudioProps): {
+  isPlaying: boolean;
+  currentTime: number;
+  channels: Record<StemType, StemChannelState>;
+  isLoop: boolean;
+  masterVolume: number;
+  setIsLoop: (value: boolean) => void;
+  setMasterVolume: (value: number) => void;
+  togglePlay: () => void;
+  play: () => Promise<void>;
+  pause: () => void;
+  seek: (time: number) => void;
+  toggleMute: (stem: StemType) => void;
+  toggleSolo: (stem: StemType) => void;
+  setVolume: (stem: StemType, volume: number) => void;
+  getAudioStream: () => Promise<MediaStream | null>;
+  effectiveGainsRef: MutableRefObject<Record<StemType, number>>;
+  getFrequencyData: () => Uint8Array;
+} {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [isLoop, setIsLoop] = useState<boolean>(false);
@@ -36,6 +54,14 @@ export function useStemAudio({ stems, duration = 0 }: UseStemAudioProps) {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const masterGainRef = useRef<GainNode | null>(null);
   const mediaStreamDestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const frequencyDataRef = useRef<Uint8Array>(new Uint8Array(128));
+  const effectiveGainsRef = useRef<Record<StemType, number>>({
+    drums: 0.85,
+    bass: 0.85,
+    other: 0.85,
+    vocals: 0.85,
+  });
   const gainNodesRef = useRef<Record<StemType, GainNode | null>>({
     drums: null,
     bass: null,
@@ -75,9 +101,16 @@ export function useStemAudio({ stems, duration = 0 }: UseStemAudioProps) {
     const streamDest = ctx.createMediaStreamDestination();
     mediaStreamDestRef.current = streamDest;
 
-    // Conectar masterGain aos alto-falantes e ao nó de captura de stream
-    masterGain.connect(ctx.destination);
-    masterGain.connect(streamDest);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.8;
+    analyserRef.current = analyser;
+    frequencyDataRef.current = new Uint8Array(analyser.frequencyBinCount);
+
+    // O analisador fica depois do masterGain e antes dos destinos de saída/gravação.
+    masterGain.connect(analyser);
+    analyser.connect(ctx.destination);
+    analyser.connect(streamDest);
 
     // Conectar fontes de áudio aos ganhos individuais
     const stemKeys: StemType[] = ['drums', 'bass', 'other', 'vocals'];
@@ -166,10 +199,11 @@ export function useStemAudio({ stems, duration = 0 }: UseStemAudioProps) {
       } else {
         effectiveGain = ch.muted ? 0 : ch.volume;
       }
+      effectiveGainsRef.current[key] = effectiveGain;
 
       // Aplica no elemento de áudio como fallback
       if (audio) {
-        audio.volume = effectiveGain * masterVolume;
+        audio.volume = effectiveGain;
       }
 
       // Aplica no nó de ganho do Web Audio para alimentar a mixagem e gravação de vídeo
@@ -282,6 +316,38 @@ export function useStemAudio({ stems, duration = 0 }: UseStemAudioProps) {
     }));
   }, []);
 
+  useEffect(() => {
+    const stemKeys: StemType[] = ['drums', 'bass', 'other', 'vocals'];
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.matches('input, textarea, select, [contenteditable="true"]')) return;
+
+      if (event.code === 'Space') {
+        event.preventDefault();
+        togglePlay();
+        return;
+      }
+
+      const shortcutIndex = ['1', '2', '3', '4'].indexOf(event.key);
+      if (shortcutIndex >= 0) {
+        event.preventDefault();
+        const stem = stemKeys[shortcutIndex];
+        if (event.shiftKey) toggleSolo(stem);
+        else toggleMute(stem);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [togglePlay, toggleMute, toggleSolo]);
+
+  const getFrequencyData = useCallback((): Uint8Array => {
+    if (analyserRef.current) {
+      analyserRef.current.getByteFrequencyData(frequencyDataRef.current as unknown as Uint8Array<ArrayBuffer>);
+    }
+    return frequencyDataRef.current;
+  }, []);
+
   // Retorna a faixa de áudio mixada em tempo real para o MediaRecorder garantindo AudioContext ativo
   const getAudioStream = useCallback(async (): Promise<MediaStream | null> => {
     initWebAudio();
@@ -311,5 +377,7 @@ export function useStemAudio({ stems, duration = 0 }: UseStemAudioProps) {
     toggleSolo,
     setVolume,
     getAudioStream,
+    effectiveGainsRef,
+    getFrequencyData,
   };
 }

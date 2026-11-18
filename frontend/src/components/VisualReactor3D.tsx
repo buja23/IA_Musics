@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Video, Square, Download } from 'lucide-react';
-import { EnergyEnvelopes, DrumMapping } from '../types';
+import { EnergyEnvelopes, DrumMapping, NoteEvent, StemType } from '../types';
+import type { MutableRefObject } from 'react';
 
 interface VisualReactor3DProps {
   currentTime: number;
@@ -9,6 +10,9 @@ interface VisualReactor3DProps {
   jobId?: string;
   envelopes?: EnergyEnvelopes;
   drums?: DrumMapping;
+  bassNotes?: NoteEvent[];
+  effectiveGainsRef?: MutableRefObject<Record<StemType, number>>;
+  getFrequencyData?: () => Uint8Array;
   isPlaying: boolean;
   getAudioStream?: () => Promise<MediaStream | null> | MediaStream | null;
 }
@@ -19,6 +23,9 @@ export const VisualReactor3D: React.FC<VisualReactor3DProps> = ({
   jobId = 'clip',
   envelopes,
   drums,
+  bassNotes = [],
+  effectiveGainsRef,
+  getFrequencyData,
   isPlaying,
   getAudioStream,
 }) => {
@@ -37,6 +44,9 @@ export const VisualReactor3D: React.FC<VisualReactor3DProps> = ({
     isPlaying: false,
     envelopes,
     drums,
+    bassNotes,
+    effectiveGainsRef,
+    getFrequencyData,
     lastKickTime: -1,
     lastSnareTime: -1,
     lastHihatTime: -1,
@@ -49,7 +59,10 @@ export const VisualReactor3D: React.FC<VisualReactor3DProps> = ({
     stateRef.current.isPlaying = isPlaying;
     stateRef.current.envelopes = envelopes;
     stateRef.current.drums = drums;
-  }, [currentTime, isPlaying, envelopes, drums]);
+    stateRef.current.bassNotes = bassNotes;
+    stateRef.current.effectiveGainsRef = effectiveGainsRef;
+    stateRef.current.getFrequencyData = getFrequencyData;
+  }, [currentTime, isPlaying, envelopes, drums, bassNotes, effectiveGainsRef, getFrequencyData]);
 
   // Se estiver gravando e a música terminar, finaliza automaticamente
   useEffect(() => {
@@ -89,7 +102,7 @@ export const VisualReactor3D: React.FC<VisualReactor3DProps> = ({
     const ambientLight = new THREE.AmbientLight(0x00f0ff, 0.4);
     scene.add(ambientLight);
 
-    const vocalPointLight = new THREE.PointLight(0xff007f, 2, 20);
+    const vocalPointLight = new THREE.PointLight(0xf43f5e, 2, 20);
     vocalPointLight.position.set(0, 0, 0);
     scene.add(vocalPointLight);
 
@@ -118,7 +131,7 @@ export const VisualReactor3D: React.FC<VisualReactor3DProps> = ({
     const innerGeo = new THREE.SphereGeometry(0.85, 32, 32);
     const innerMat = new THREE.MeshStandardMaterial({
       color: 0x0b111e,
-      emissive: 0xff007f,
+      emissive: 0xec4899,
       emissiveIntensity: 0.2,
       roughness: 0.1,
       metalness: 0.9,
@@ -208,11 +221,25 @@ export const VisualReactor3D: React.FC<VisualReactor3DProps> = ({
       const otherVal = env?.other?.[frameIdx] ?? 0;
 
       // A) Baixo / 808 e Kicks: Escala do núcleo e rotação
-      const targetScale = 1.0 + bassVal * 0.55 + drumsVal * 0.25;
+      const gains = stateRef.current.effectiveGainsRef?.current;
+      const bassGain = gains?.bass ?? 1;
+      const drumsGain = gains?.drums ?? 1;
+      const vocalsGain = gains?.vocals ?? 1;
+      const otherGain = gains?.other ?? 1;
+
+      const activeBass = stateRef.current.bassNotes?.find((n) => time >= n.start && time <= n.end);
+      const bend = activeBass?.pitch_bend?.[Math.min(activeBass.pitch_bend.length - 1, Math.floor(time * 30) % activeBass.pitch_bend.length)] ?? 0;
+      const midi = activeBass?.midi ?? 45;
+
+      const targetScale = 1.0 + bassVal * bassGain * 0.55 + drumsVal * drumsGain * 0.25;
       coreGroup.scale.lerp(
-        new THREE.Vector3(targetScale, targetScale, targetScale),
+        new THREE.Vector3(targetScale, targetScale * (1 + bend * 0.28), targetScale),
         0.2
       );
+      coreGroup.rotation.z = bend * 0.018;
+      icoMat.opacity = bassGain > 0 ? 1 : 0.1;
+      icoMat.transparent = true;
+      icoMat.wireframe = true;
 
       // Rotação suave contínua
       coreGroup.rotation.x += 0.008 + otherVal * 0.015;
@@ -220,7 +247,7 @@ export const VisualReactor3D: React.FC<VisualReactor3DProps> = ({
 
       // B) Detecção de Kicks para Camera Shake
       const drumData = stateRef.current.drums;
-      if (drumData?.kicks && isPlay) {
+      if (drumData?.kicks && isPlay && drumsGain > 0) {
         const recentKick = drumData.kicks.find(
           (k) => Math.abs(k.time - time) < 0.05
         );
@@ -231,6 +258,7 @@ export const VisualReactor3D: React.FC<VisualReactor3DProps> = ({
       }
 
       // Aplica Camera Shake com decaimento suave
+      stateRef.current.shakeIntensity *= drumsGain;
       if (stateRef.current.shakeIntensity > 0.001) {
         camera.position.x =
           initialCameraPos.x +
@@ -244,7 +272,7 @@ export const VisualReactor3D: React.FC<VisualReactor3DProps> = ({
       }
 
       // C) Detecção de Snares / Claps para disparar Shockwaves
-      if (drumData?.snares_claps && isPlay) {
+      if (drumData?.snares_claps && isPlay && drumsGain > 0) {
         const recentSnare = drumData.snares_claps.find(
           (s) => Math.abs(s.time - time) < 0.05
         );
@@ -272,7 +300,7 @@ export const VisualReactor3D: React.FC<VisualReactor3DProps> = ({
 
       // D) Hi-Hats: Acelera rotação e brilho das partículas
       let hihatIntensity = 0;
-      if (drumData?.hihats && isPlay) {
+      if (drumData?.hihats && isPlay && drumsGain > 0) {
         const recentHat = drumData.hihats.find(
           (h) => Math.abs(h.time - time) < 0.06
         );
@@ -281,21 +309,25 @@ export const VisualReactor3D: React.FC<VisualReactor3DProps> = ({
         }
       }
 
-      const rotSpeed = 0.001 + hihatIntensity * 0.015 + drumsVal * 0.004;
+      const rotSpeed = 0.001 + hihatIntensity * drumsGain * 0.015 + drumsVal * drumsGain * 0.004;
       particleSystem.rotation.y += rotSpeed;
       particleSystem.rotation.z += rotSpeed * 0.5;
-      particleMat.opacity = 0.4 + hihatIntensity * 0.5 + drumsVal * 0.2;
-      particleMat.size = 0.05 + hihatIntensity * 0.04;
+      particleMat.opacity = drumsGain > 0 ? (0.4 + hihatIntensity * 0.5 + drumsVal * 0.2) : 0.1;
+      particleMat.size = 0.05 + hihatIntensity * drumsGain * 0.04;
 
       // E) Vocais: Emissão luminosa e cor do núcleo interno
-      innerMat.emissiveIntensity = 0.3 + vocalsVal * 3.5;
-      vocalPointLight.intensity = 1.0 + vocalsVal * 4.0;
+      innerMat.emissiveIntensity = (0.3 + vocalsVal * 3.5) * vocalsGain;
+      innerMat.opacity = vocalsGain > 0 ? 1 : 0.1;
+      innerMat.transparent = true;
+      innerSphere.scale.setScalar(vocalsGain > 0 ? 0.82 + vocalsVal * vocalsGain * 0.35 : 0.45);
+      vocalPointLight.intensity = vocalsGain > 0 ? 1.0 + vocalsVal * vocalsGain * 4.0 : 0;
 
       // F) Melodia: Modulação sutil da matiz de cor do ambiente
-      const hue = (time * 0.04 + otherVal * 0.2) % 1.0;
+      const hue = (time * 0.04 + otherVal * otherGain * 0.2) % 1.0;
       ambientLight.color.setHSL(0.52 + hue * 0.2, 0.9, 0.4);
       icoMat.emissive.setHSL(0.52 + hue * 0.2, 0.9, 0.2 + otherVal * 0.3);
 
+      icosahedron.geometry.rotateY(((midi - 45) / 48) * 0.0008);
       renderer.render(scene, camera);
     };
 

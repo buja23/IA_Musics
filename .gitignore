@@ -13,6 +13,10 @@ venv/
 .venv/
 env/
 
+# Dependências e artefatos do frontend
+frontend/node_modules/
+frontend/dist/
+
 # Arquivos temporários de processamento
 uploads/
 static/outputs/

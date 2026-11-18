@@ -14,10 +14,11 @@ import logging
 import shutil
 import uuid
 from pathlib import Path
-from typing import TypedDict
+from typing import TypedDict, Callable
 
+import numpy as np
+import soundfile as sf
 import torch
-import torchaudio
 
 logger = logging.getLogger("trap_ai_studio.demucs_service")
 
@@ -139,17 +140,25 @@ def _load_and_prepare_audio(
     Retorna:
         Tensor de shape (1, channels, samples) — batch de 1.
     """
-    # torchaudio.load retorna (waveform: Tensor, sample_rate: int)
-    # waveform shape: (channels, samples)
-    waveform, sr = torchaudio.load(str(audio_path))
+    # soundfile.read retorna (data: ndarray shape (samples, channels), sample_rate)
+    # always_2d=True garante shape (samples, channels) mesmo para mono
+    data, sr = sf.read(str(audio_path), dtype="float32", always_2d=True)
+
+    # Transpor para formato PyTorch: (samples, channels) → (channels, samples)
+    waveform = torch.from_numpy(data.T.copy())
 
     # Re-amostrar se a taxa diferir da esperada pelo Demucs
     if sr != DEMUCS_SAMPLE_RATE:
         logger.info("Re-amostrando de %d Hz → %d Hz", sr, DEMUCS_SAMPLE_RATE)
-        resampler = torchaudio.transforms.Resample(
-            orig_freq=sr, new_freq=DEMUCS_SAMPLE_RATE
-        )
-        waveform = resampler(waveform)
+        # Usar interpolação linear para resample sem dependência do torchaudio
+        num_samples_target = int(waveform.shape[1] * DEMUCS_SAMPLE_RATE / sr)
+        # unsqueeze para (1, channels, samples) → interpolate → squeeze de volta
+        waveform = torch.nn.functional.interpolate(
+            waveform.unsqueeze(0),
+            size=num_samples_target,
+            mode="linear",
+            align_corners=False,
+        ).squeeze(0)
 
     # Garantir exatamente 2 canais (estéreo) — requisito do HTDemucs
     if waveform.shape[0] == 1:
@@ -202,18 +211,19 @@ def _save_stems(
 
     for idx, stem_name in enumerate(STEM_NAMES):
         # Extrair stem individual: (channels, samples)
-        stem_audio = stems[idx].cpu()
+        stem_audio = stems[idx].detach().cpu()
 
         filename = f"{stem_name}.wav"
         filepath = output_dir / filename
 
-        # Salvar como WAV 16-bit PCM
-        torchaudio.save(
+        # Converter tensor (channels, samples) → numpy (samples, channels) para soundfile
+        stem_numpy = stem_audio.numpy().T
+        # Salvar como WAV 16-bit PCM via soundfile (subtype PCM_16)
+        sf.write(
             str(filepath),
-            stem_audio,
-            sample_rate=DEMUCS_SAMPLE_RATE,
-            encoding="PCM_S",
-            bits_per_sample=16,
+            stem_numpy,
+            samplerate=DEMUCS_SAMPLE_RATE,
+            subtype="PCM_16",
         )
 
         # Caminho relativo para servir via FastAPI static files
@@ -232,42 +242,39 @@ def _save_stems(
 
 
 # ---------------------------------------------------------------------------
-# Função principal do serviço (ponto de entrada público)
+# Função de execução síncrona (executada em thread de background)
 # ---------------------------------------------------------------------------
 
-async def separate_stems(uploaded_file_path: Path) -> ProcessingResult:
+def separate_stems_sync(
+    uploaded_file_path: Path,
+    job_id: str | None = None,
+    progress_callback: Callable[[float, str, str], None] | None = None,
+) -> ProcessingResult:
     """
-    Executa o pipeline completo de separação de stems:
-    1. Resolve o dispositivo (CPU/GPU)
-    2. Carrega o modelo HTDemucs
-    3. Pré-processa o áudio
-    4. Executa a inferência
-    5. Salva os 4 stems em WAV
-
-    Args:
-        uploaded_file_path: caminho do arquivo de áudio salvo em disco.
-
-    Returns:
-        ProcessingResult com status, job_id e lista de stems.
+    Executa o pipeline completo de separação de stems de forma síncrona.
+    Permite passar job_id pré-criado e callback de progresso.
     """
-    job_id = uuid.uuid4().hex[:12]
-    job_output_dir = OUTPUT_DIR / job_id
+    active_job_id = job_id or uuid.uuid4().hex[:12]
+    job_output_dir = OUTPUT_DIR / active_job_id
 
     try:
-        # 1. Resolver dispositivo
-        device = _resolve_device()
+        # 1. Notificar carregamento do modelo
+        if progress_callback:
+            progress_callback(20.0, "demucs_load", "Carregando modelo HTDemucs na CPU...")
 
-        # 2. Carregar modelo (lazy — primeira chamada demora mais)
+        device = _resolve_device()
         model = _load_model(device)
 
-        # 3. Carregar e preparar áudio
+        # 2. Carregar e preparar áudio
         logger.info("Pré-processando áudio: %s", uploaded_file_path.name)
         waveform = _load_and_prepare_audio(uploaded_file_path, device)
 
-        # 4. Inferência — separação de stems
+        # 3. Notificar início da separação
+        if progress_callback:
+            progress_callback(35.0, "demucs_separate", "Separando stems (Vocais, Bateria, 808, Melodia)...")
+
         logger.info("Executando separação de stems (device=%s) …", device)
         with torch.no_grad():
-            # apply_model retorna tensor (batch, n_sources, channels, samples)
             from demucs.apply import apply_model  # type: ignore[import-untyped]
 
             stems_tensor = apply_model(
@@ -275,28 +282,29 @@ async def separate_stems(uploaded_file_path: Path) -> ProcessingResult:
                 waveform,
                 device=device,
                 progress=True,
-                num_workers=0,  # evitar overhead de multiprocessing na CPU
+                num_workers=0,
             )
 
-        # 5. Salvar stems
-        stems = _save_stems(stems_tensor, job_output_dir, job_id)
+        if progress_callback:
+            progress_callback(60.0, "demucs_separate", "Salvando 4 faixas WAV isoladas...")
 
-        # Liberar memória do tensor de entrada
+        # 4. Salvar stems
+        stems = _save_stems(stems_tensor, job_output_dir, active_job_id)
+
+        # Liberar tensores
         del waveform, stems_tensor
         gc.collect()
         if device.type == "cuda":
             torch.cuda.empty_cache()
 
         return ProcessingResult(
-            job_id=job_id,
+            job_id=active_job_id,
             status="completed",
             stems=stems,
         )
 
     except ValueError as exc:
-        # Erros de validação (duração, formato)
         logger.error("Erro de validação: %s", exc)
-        # Limpar diretório de saída parcial
         if job_output_dir.exists():
             shutil.rmtree(job_output_dir, ignore_errors=True)
         raise
@@ -310,8 +318,21 @@ async def separate_stems(uploaded_file_path: Path) -> ProcessingResult:
         ) from exc
 
     finally:
-        # Limpar arquivo de upload temporário
         if uploaded_file_path.exists():
             uploaded_file_path.unlink(missing_ok=True)
             logger.info("Arquivo temporário removido: %s", uploaded_file_path)
+
+
+async def separate_stems(
+    uploaded_file_path: Path,
+    job_id: str | None = None,
+    progress_callback: Callable[[float, str, str], None] | None = None,
+) -> ProcessingResult:
+    """
+    Wrapper assíncrono para separate_stems_sync (executa em thread dedicada).
+    """
+    import asyncio
+    return await asyncio.to_thread(
+        separate_stems_sync, uploaded_file_path, job_id, progress_callback
+    )
 

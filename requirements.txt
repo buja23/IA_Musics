@@ -1,5 +1,5 @@
 # ====================================================
-# Trap AI Studio — FASE 1: Dependências
+# Trap AI Studio — Dependências (FASE 1 + FASE 2)
 # ====================================================
 
 # --- Web Framework ---
@@ -7,14 +7,23 @@ fastapi==0.115.5
 uvicorn[standard]==0.32.1
 python-multipart==0.0.18
 
-# --- IA / Áudio ---
+# --- IA / Áudio (Separação de Stems) ---
 # PyTorch CPU-only (seguro para AMD RX 570 sem ROCm nativo no Windows)
 # Instale com:  pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 torch>=2.1.0
 torchaudio>=2.1.0
 demucs>=4.0.1
 
+# --- Áudio I/O (substitui torchaudio para leitura/escrita) ---
+soundfile>=0.12.1
+
+# --- Análise Musical (MIR) ---
+librosa>=0.10.1
+scipy>=1.11.0
+pretty_midi>=0.2.10
+basic-pitch>=0.3.0
+
 # --- Utilitários ---
+numpy>=1.24.0
 pydantic>=2.0
 aiofiles==24.1.0
-

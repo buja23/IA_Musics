@@ -10,6 +10,7 @@ Uso:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -20,6 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from routes.audio import router as audio_router
+from services.job_manager import job_manager
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -55,10 +57,12 @@ UPLOADS_DIR.mkdir(exist_ok=True)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     Ciclo de vida da aplicação.
-    No startup, faz log do status; no shutdown, limpa recursos.
+    No startup, registra o loop de eventos no JobManager e faz log;
+    no shutdown, limpa recursos.
     """
+    job_manager.set_loop(asyncio.get_running_loop())
     logger.info("=" * 60)
-    logger.info("  🎵  Trap AI Studio — Backend v0.1.0")
+    logger.info("  🎵  Trap AI Studio — Backend v0.2.0 (FASE 4A)")
     logger.info("  📂  Outputs: %s", OUTPUTS_DIR)
     logger.info("  📂  Uploads: %s", UPLOADS_DIR)
     logger.info("=" * 60)
@@ -90,10 +94,16 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Restringir em produção
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "*"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # ---------------------------------------------------------------------------
